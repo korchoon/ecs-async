@@ -1,4 +1,4 @@
-# Async Routine для EcsProto
+# `AsyncSystem` для EcsProto
 
 ## Важно
 Из-за ограничений лицензии этот репозиторий не включает в себя пакеты `Leopotam.EcsProto`, `Leopotam.EcsProto.QoL` (они добавлены в `.gitignore`)
