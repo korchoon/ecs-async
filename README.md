@@ -5,17 +5,9 @@
 
 Прочитать о EcsProto и узнать, как получить его копию можно [на сайте автора](https://leopotam.ru/28/)
 
-## Описание
-
-`AsyncSystem` — это базовый класс, который позволяет записывать асинхронную логику в EcsProto в линейном стиле, используя синтаксис `async/await`. Это упрощает код, избавляя от callback hell и позволяя использовать такие синтаксические возможности, как:
-
-- область видимости переменных,
-- управление потоком (`flow control`),
-- обработка исключений (`try/finally`).
-
 ## Решаемая проблема
 
-В EcsProto (как и в других ECS фреймворках) не рекомендуется использовать `async` синтаксис (`Task`, `UniTask`, `Unity's Awaitable`) при работе с сущностями `ProtoEntity`, так как у этих async типов есть неявный шедулер, который работает вне цикла `SystemGroup`. Это может привести к непредсказуемым ошибкам при обращении к данным `ProtoEntity`.
+В EcsProto (как и в других ECS фреймворках) не рекомендуется использовать `async` синтаксис (`System.Threading.Task`, `UniTask`, `UnityEngine.Awaitable`) при работе с сущностями `ProtoEntity`, так как у этих async типов есть неявный шедулер, который работает вне цикла `SystemGroup`. Это может привести к непредсказуемым ошибкам при обращении к данным `ProtoEntity`.
 
 `AsyncSystem` решает эту проблему за счет использования собственного типа `Routine`, который:
 
@@ -24,7 +16,21 @@
 - перед каждым вызовом логики `await` проверяется, что сущность удовлетворяет требованиям к фильтру, что сущность жива, мир жив, и пр.
 
 
-Таким образом, обращение к `ProtoEntity` остается безопасным в пределах всего `async` метода, без лишних упаковок-распаковок, так как все проверки проводятся до вызова `Routine.Tick()`.
+Таким образом, обращение к `ProtoEntity` остается безопасным в пределах всего `async` метода, без лишних упаковок-распаковок, так как все проверки проводятся до срабатывания `await` (см. [AsyncSystem](./Assets/Code/AsyncSystem/AsyncSystem.cs))
+
+## Дополнительные преимущества
+
+- Сокращает количество вспомогательных компонентов-маркеров, которые нужны только для ожидания и не несут бизнес-логики.
+- Позволяет выразить **Behaviour Tree** с помощью `Routine<bool>` и писать его в синтаксисе `async/await`, сохраняя контроль над выполнением.
+
+
+## Описание
+
+`AsyncSystem` — это базовый класс, который позволяет записывать асинхронную логику в EcsProto в линейном стиле, используя синтаксис `async/await`. Это упрощает код, избавляя от callback hell и позволяя использовать такие синтаксические возможности, как:
+
+- область видимости переменных,
+- управление потоком (`flow control`),
+- обработка исключений (`try/finally`).
 
 ## Когда использовать
 
@@ -39,37 +45,36 @@
 - Поскольку UI редко требует массовой обработки, использование `async` упрощает код.
 - При необходимости легко рефакторится в обычные системы.
 
-## Дополнительные преимущества
-
-- Сокращает количество вспомогательных компонентов-маркеров, которые нужны только для ожидания и не несут бизнес-логики.
-- Позволяет выразить любой **Behaviour Tree** с помощью `Routine<bool>` и писать его в синтаксисе `async/await`, сохраняя контроль над выполнением.
-
-
 ## Добавление системы
 
-Чтобы добавить AsyncSystem, необходимо создать класс, унаследованный от AsyncSystem<TSelf>, и реализовать два метода:
+Чтобы добавить `AsyncSystem`, необходимо создать класс, унаследованный от AsyncSystem<TSelf>, и реализовать два метода:
 ```csharp
 class MySystem : AsyncSystem<MySystem> {
+    // фильтр как условие старта async логики
+    protected override IProtoIt GetProtoIt () => new ProtoIt(It.Inc<SomeComponent>());
+ 
     protected override async Routine Run (ProtoEntity entity){
         await Routine.When(...)
         // ...
     }
-
-    // фильтр как условие старта async логики
-    protected override IProtoIt GetProtoIt () => new ProtoIt(It.Inc<SomeComponent>());
 }
 ```
+### Примечание
+- Под капотом используется кастомный Task-like тип `Routine`, подробности в  [README_ROUTINE.md](./Assets/Code/Lib/Routines/README_ROUTINE.md)
 
-Под капотом используется кастомный Task-like тип `Routine`, подробности в  [README_ROUTINE.md](./Assets/Code/Lib/Routines/README_ROUTINE.md)
-
-
-Для выполнения отложенной очистки используется тип `Scope` (похоже на `defer` в языке Go), подробности в [README_SCOPE.md](./Assets/Code/Lib/Scope/README_SCOPE.md)
+- Для выполнения отложенной очистки используется тип `Scope` (похоже на `defer` в языке Go), подробности в [README_SCOPE.md](./Assets/Code/Lib/Scope/README_SCOPE.md)
 
 ## Примеры async систем
 
-### Пример 1: SysUnit
+### Пример 1: Логика стейт-машины юнита
+ 
+- Стартует, как только на сущности появляется компонент CUnit (см фильтр)
+- Меняет цвет в зависимости от здоровья (>=50 зеленый, >0 желтый, красный)
+- Параллельно обновляется хелсбар со слайдером и текстовым полем (см. parallel)
+- Когда здоровье 0, ждем 3 сек и удаляем компонент юнита
 
 ```csharp
+
 class SysUnit : AsyncSystem<SysUnit> {
     [DI] GameAspect _counterAspect = default;
     [DI] SceneContext _scene = default;
@@ -117,28 +122,38 @@ class SysUnit : AsyncSystem<SysUnit> {
 }
 ```
 
-### Пример 2: SysGameFlow
-
+### Пример 2: Основная игровая логика
+- Ожидает нажатия `StartBtn` для запуска игры.
+- Создает сущность с компонентом `CUnit (Health = 100)`.
+- Включает кнопку атаки и подписывает логику на нажатие в рамках `using (unitAliveScope)`.
+- Завершает игру при отсутствии юнитов, ждет нажатия кнопки `GameOverBtn`.
+- Повторяет процесс.
 ```csharp
 class SysGameFlow : AsyncSystem<SysGameFlow> {
-    [DI ()] GameAspect _gameAspect = default;
-    [DI ()] SceneContext _sceneContext = default;
+    [DI] GameAspect _gameAspect = default;
+    [DI] SceneContext _sceneContext = default;
 
     override IProtoIt GetProtoIt () => new ProtoIt (It.Inc<CGame> ());
 
     override async Routine Run (ProtoEntity entity) {
         _sceneContext.MenuRoot.SetActive (true);
         while (true) {
+            using var roundScope = new Scope ();
+
             await _sceneContext.StartBtn.WaitForClick ();
             // game started
+            _sceneContext.MenuRoot.SetActive (roundScope, false);
+            _sceneContext.GameRoot.SetActive (roundScope, true);
 
-            _gameAspect.CUnit.NewEntity () = new () {
-                Health = 100
-            };
+            _gameAspect.CUnit.NewEntity () = new () { Health = 100 };
 
-            await Routine.When (() => _gameAspect.UnitIt.Len () == 0);
-            // game over
-        
+            using (var unitAliveScope = roundScope.NestedScope ()) {
+                _sceneContext.ShootBtn.onClick.AddListener (unitAliveScope, Shoot);
+
+                await Routine.When (() => _gameAspect.UnitIt.Len () == 0);
+                // game over
+            }
+
             await _sceneContext.GameOverBtn.WaitForClick ();
         }
     }

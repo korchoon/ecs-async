@@ -3,9 +3,18 @@ using Leopotam.EcsProto.QoL;
 using Mk.Routines;
 using Mk.Scopes;
 
+/// <summary>
+/// Основная игровая логика. Управляет активацией/деактивацией объектов и подписками на события через Scope.
+/// 
+/// - Ожидает нажатия StartBtn для запуска игры.
+/// - Создает сущность с компонентом CUnit (Health = 100).
+/// - Включает кнопку атаки и подписывает логику в рамках using (unitAliveScope).
+/// - Завершает игру при отсутствии юнитов, показывает "Game Over" и ждет нажатия кнопки.
+/// - Повторяет процесс.
+/// </summary>
 class SysGameFlow : AsyncSystem<SysGameFlow> {
-    [DI ()] GameAspect _gameAspect = default;
-    [DI ()] SceneContext _sceneContext = default;
+    [DI] GameAspect _gameAspect = default;
+    [DI] SceneContext _sceneContext = default;
 
     protected override IProtoIt GetProtoIt () => new ProtoIt (It.Inc<CGame> ());
 

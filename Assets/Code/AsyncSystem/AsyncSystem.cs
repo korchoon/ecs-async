@@ -5,9 +5,10 @@ using Leopotam.EcsProto.QoL;
 using Mk.Routines;
 
 /// <summary>
-/// Система, которая позволяет 
+/// Базовый класс для асинхронных систем в ProtoECS.
+/// Позволяет писать логику в `async/await` синтаксисе, обеспечивая безопасность работы с `ProtoEntity`.
 /// </summary>
-/// <typeparam name="TSelf"></typeparam>
+/// <typeparam name="TSelf">Тип наследуемой системы.</typeparam>
 public abstract class AsyncSystem<TSelf> : IAsyncSystem, IProtoRunSystem, IProtoInitSystem, IProtoDestroySystem
     where TSelf : AsyncSystem<TSelf> {
     _Aspect _self;

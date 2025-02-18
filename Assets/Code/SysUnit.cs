@@ -3,9 +3,21 @@ using Leopotam.EcsProto.QoL;
 using Mk.Routines;
 using UnityEngine;
 
+/// <summary>
+/// Стейт-машина юнита, которая запускается при появлении компонента CUnit на сущности (см. GetProtoIt).
+/// Изменяет цвет в зависимости от уровня здоровья:
+/// - ≥ 50 — зеленый
+/// - > 0 — желтый
+/// - 0 — красный
+/// 
+/// Параллельно обновляет health bar (слайдер и текстовое поле) (см. parallel).
+/// При достижении 0 здоровья ждет 3 секунды, затем удаляет компонент юнита.
+/// 
+/// Scope используется для очистки View юнита после завершения async-логики. Сработает даже в случае Exception.
+/// </summary>
 class SysUnit : AsyncSystem<SysUnit> {
-    [DI ()] GameAspect _counterAspect = default;
-    [DI ()] SceneContext _scene = default;
+    [DI] GameAspect _counterAspect = default;
+    [DI] SceneContext _scene = default;
 
     protected override IProtoIt GetProtoIt () => new ProtoIt (It.Inc<CUnit> ());
 
