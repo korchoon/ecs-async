@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Linq;
 using Leopotam.EcsProto;
 using Leopotam.EcsProto.QoL;
 using Mk.Routines;
@@ -35,7 +34,12 @@ public abstract class AsyncSystem<TSelf> : IAsyncSystem, IProtoRunSystem, IProto
             };
             _incMode.Source.Init (world);
             _incMode.End.Init (world);
-            var inc1 = inc.Includes ().Select (t => t.ItemType ()).ToArray ();
+            var protoPools = inc.Includes ();
+            var inc1 = new Type[protoPools.Length];
+            for (var i = protoPools.Length - 1; i >= 0; i--) {
+                inc1[i] = protoPools[i].ItemType ();
+            }
+
             _routineStart = new (inc1, It.Exc<_Routine> ());
         }
         else {

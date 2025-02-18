@@ -2,19 +2,10 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using JetBrains.Annotations;
 using UnityEngine;
 
 public static class Option {
-    public static Option<T> FirstMaybe<T> (this IEnumerable<T> t, Func<T, bool> predicate) {
-        foreach (var t1 in t.Where (predicate)) {
-            return t1;
-        }
-
-        return Option<T>.None;
-    }
-
     public static Option<T> Some<T> (T value) => new (value, true);
 
     public static Option<T> None<T> () => new (default, false);
