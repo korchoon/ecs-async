@@ -1,3 +1,5 @@
+using AsyncSystem;
+using AsyncSystem.Utils;
 using Leopotam.EcsProto;
 using Leopotam.EcsProto.QoL;
 using Mk.Routines;
@@ -25,22 +27,22 @@ class SysGameFlow : AsyncSystem<SysGameFlow> {
 
             await _sceneContext.StartBtn.WaitForClick ();
             // game started
-            _sceneContext.MenuRoot.SetActive (roundScope, false);
-            _sceneContext.GameRoot.SetActive (roundScope, true);
+            _sceneContext.MenuRoot.SetActiveScoped (roundScope, false);
+            _sceneContext.GameRoot.SetActiveScoped (roundScope, true);
 
             _gameAspect.CUnit.NewEntity () = new () {
                 Health = 100
             };
 
             using (var unitAliveScope = roundScope.NestedScope ()) {
-                _sceneContext.ShootBtn.gameObject.SetActive (unitAliveScope, true);
-                _sceneContext.ShootBtn.onClick.AddListener (unitAliveScope, Shoot);
+                _sceneContext.ShootBtn.gameObject.SetActiveScoped (unitAliveScope, true);
+                _sceneContext.ShootBtn.onClick.AddListenerScoped (unitAliveScope, Shoot);
 
                 await Routine.When (() => _gameAspect.UnitIt.Len () == 0);
                 // game over
             }
 
-            _sceneContext.GameOverRoot.SetActive (roundScope, true);
+            _sceneContext.GameOverRoot.SetActiveScoped (roundScope, true);
             await _sceneContext.GameOverBtn.WaitForClick ();
         }
     }
