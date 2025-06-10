@@ -67,7 +67,7 @@ namespace AsyncSystem {
 
         public void Run () {
             foreach (var e in _scopeStart) {
-                ref var c = ref _self._scope.Add (e);
+                ref var c = ref _self._pool.Add (e);
                 c.Scope = new ();
                 OnEnter (e, c.Scope);
             }
@@ -78,7 +78,7 @@ namespace AsyncSystem {
                     _buf.Add (_self._world.PackEntityWithWorld (e));
                 }
                 else {
-                    _self._scope.DelIfExists (e);
+                    _self._pool.DelIfExists (e);
                 }
             }
 
@@ -94,25 +94,23 @@ namespace AsyncSystem {
 
         public void Destroy () {
             foreach (var e in _incMode.End) {
-                _self._scope.DelIfExists (e);
+                _self._pool.DelIfExists (e);
             }
         }
 
         class _Aspect : IProtoAspect {
             public ProtoWorld _world;
-            public ProtoPool<_State> _scope;
-
-            ProtoAspectInjectUtil.Result _res;
+            public ProtoPool<_State> _pool;
 
             public void Init (ProtoWorld world) {
-                _res = ProtoAspectInjectUtil.Init (this, world);
                 Asr.IsTrue (_world == null);
                 _world = world;
-                ProtoAspectInjectUtil.GetPool (_world, ref _scope);
+                _world.AddAspect (this);
+                _pool = new ();
+                _world.AddPool (_pool);
             }
 
             public void PostInit () {
-                ProtoAspectInjectUtil.PostInit (_res);
             }
 
             public ProtoWorld World () {

@@ -54,16 +54,16 @@ namespace AsyncSystem {
 
         public void Run () {
             foreach (var e in _routineStart) {
-                _self._routine.Add (e).Routine = Run (e);
+                _self._pool.Add (e).Routine = Run (e);
             }
 
             var either = _incMode;
             foreach (var e in either.End) {
                 if (either.Source.Has (e)) {
-                    _buf.Add ((_self._routine.Get (e).Routine, _self._world.PackEntityWithWorld (e)));
+                    _buf.Add ((_self._pool.Get (e).Routine, _self._world.PackEntityWithWorld (e)));
                 }
                 else {
-                    _self._routine.DelIfExists (e);
+                    _self._pool.DelIfExists (e);
                 }
             }
 
@@ -81,26 +81,23 @@ namespace AsyncSystem {
 
         public void Destroy () {
             foreach (var e in _incMode.End) {
-                _self._routine.DelIfExists (e);
+                _self._pool.DelIfExists (e);
             }
         }
 
         class _Aspect : IProtoAspect {
             public ProtoWorld _world;
-            public ProtoPool<_Routine> _routine;
-
-            ProtoAspectInjectUtil.Result _res;
+            public ProtoPool<_Routine> _pool;
 
             public void Init (ProtoWorld world) {
-                _res = ProtoAspectInjectUtil.Init (this, world);
                 Asr.IsTrue (_world == null);
                 _world = world;
-                ProtoAspectInjectUtil.GetPool (_world, ref _routine);
+                _world.AddAspect (this);
+                _pool = new ();
+                _world.AddPool (_pool);
             }
 
-            public void PostInit () {
-                ProtoAspectInjectUtil.PostInit (_res);
-            }
+            public void PostInit () { }
 
             public ProtoWorld World () {
                 return _world;
